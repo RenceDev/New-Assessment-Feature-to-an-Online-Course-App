@@ -36,20 +36,23 @@
 </nav>
 
 <div class="container-fluid">
-    {% if grade > 80 %}
+    {% if grade >= 80 %}
     <div class="alert alert-success">
-       <!--HINT Display passed info -->
+        <strong>Congratulations!</strong> You have passed the exam with a grade of {{ grade }}%.
     </div>
-        {% else %}
-        <div class="alert alert-danger">
-            <!--HINT Display failed info -->
-        </div>
-        <a class="btn btn-link text-danger" href="{% url 'onlinecourse:course_details' course.id %}">Re-test</a>
-        {% endif %}
-        <div class="card-columns-vertical mt-1">
+    {% else %}
+    <div class="alert alert-danger">
+        <strong>Sorry!</strong> You did not pass the exam. Your grade is {{ grade }}%.
+    </div>
+    <a class="btn btn-link text-danger" href="{% url 'onlinecourse:course_details' course.id %}">Re-test</a>
+    {% endif %}
+    
+    <div class="card-columns-vertical mt-1">
         <h5 class="">Exam results</h5>
-            <!--HINT Display exam results-->
-        </div>
+        <p><strong>Questions:</strong> {{ total_questions }}</p>
+        <p><strong>Correct Answers:</strong> {{ correct_answers }}</p>
     </div>
+</div>
+
 </body>
 </html>

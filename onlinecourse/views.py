@@ -1,19 +1,15 @@
-from .models import Course, Enrollment, Question, Choice, Submission
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponseRedirect
-from .models import Course, Enrollment
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
-from django.views import generic
 from django.contrib.auth import login, logout, authenticate
+from django.views import generic  # <-- Add this import
+from .models import Course, Enrollment, Question, Choice, Submission
 import logging
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-# Create your views here.
-
+# User registration view
 def registration_request(request):
     context = {}
     if request.method == 'GET':
@@ -39,6 +35,7 @@ def registration_request(request):
             context['message'] = "User already exists."
             return render(request, 'onlinecourse/user_registration_bootstrap.html', context)
 
+# User login view
 def login_request(request):
     context = {}
     if request.method == "POST":
@@ -54,10 +51,12 @@ def login_request(request):
     else:
         return render(request, 'onlinecourse/user_login_bootstrap.html', context)
 
+# User logout view
 def logout_request(request):
     logout(request)
     return redirect('onlinecourse:index')
 
+# Check if a user is enrolled in a course
 def check_if_enrolled(user, course):
     is_enrolled = False
     if user.id is not None:
@@ -67,7 +66,7 @@ def check_if_enrolled(user, course):
             is_enrolled = True
     return is_enrolled
 
-# CourseListView
+# CourseListView: Displays list of courses
 class CourseListView(generic.ListView):
     template_name = 'onlinecourse/course_list_bootstrap.html'
     context_object_name = 'course_list'
@@ -80,10 +79,12 @@ class CourseListView(generic.ListView):
                 course.is_enrolled = check_if_enrolled(user, course)
         return courses
 
+# CourseDetailView: Displays details of a specific course
 class CourseDetailView(generic.DetailView):
     model = Course
     template_name = 'onlinecourse/course_detail_bootstrap.html'
 
+# Enroll in a course
 def enroll(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     user = request.user
@@ -133,10 +134,32 @@ def submit(request, course_id):
     # Redirect to the exam result view, passing the course_id and submission_id
     return HttpResponseRedirect(reverse(viewname='onlinecourse:exam_result', args=(course_id, submission_id,)))
 
-# Placeholder for the exam result view (show_exam_result) that will evaluate the submission
-# def show_exam_result(request, course_id, submission_id):
-#     course = get_object_or_404(Course, pk=course_id)
-#     submission = get_object_or_404(Submission, pk=submission_id)
-#     # Logic for calculating score and showing the results can be implemented here
-#     return render(request, 'onlinecourse/exam_result.html', {'course': course, 'submission': submission})
+# Function to display the exam result
+def show_exam_result(request, course_id, submission_id):
+    # Get the course and submission objects
+    course = get_object_or_404(Course, pk=course_id)
+    submission = get_object_or_404(Submission, pk=submission_id)
 
+    # Get the user's selected choices from the submission
+    selected_choices = submission.choices.all()
+
+    # Calculate the total score
+    total_questions = Question.objects.filter(course=course).count()
+    correct_answers = 0
+
+    # Compare each selected choice with the correct answer
+    for choice in selected_choices:
+        if choice.is_correct:
+            correct_answers += 1
+
+    # Calculate the grade as a percentage
+    grade = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+
+    # Render the exam result page with the calculated grade
+    return render(request, 'onlinecourse/exam_result_bootstrap.html', {
+        'course': course,
+        'submission': submission,
+        'grade': grade,
+        'correct_answers': correct_answers,
+        'total_questions': total_questions
+    })
